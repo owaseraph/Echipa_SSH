@@ -1,0 +1,50 @@
+# --- OS Junk ---
+.DS_Store
+Thumbs.db
+*.swp
+
+# --- Java & IDEs (Laptop Shell) ---
+target/
+*.class
+*.jar
+*.war
+.idea/
+*.iml
+.classpath
+.project
+.settings/
+.vscode/
+bin/
+
+# --- FPGA / EDA Tools (Vivado, Quartus, etc.) ---
+# These files are huge and change every time you hit 'Compile'
+*.bit
+*.bin
+*.mcs
+*.prm
+*.log
+*.jou
+*.str
+*.vcd
+.Xil/
+hd_visual/
+/runs/
+/work/
+/db/
+/incremental_db/
+/output_files/
+/greybox_tmp/
+
+# --- ESP32 / Arduino / PlatformIO ---
+.pio/
+build/
+.pdm/
+.vscode/.browse.vc.db
+*.o
+*.d
+*.elf
+*.map
+
+# --- Documentation ---
+# If you use a tool to draw diagrams, ignore the temp files
+~$*
