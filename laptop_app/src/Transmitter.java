@@ -1,6 +1,8 @@
 import java.util.Scanner;
 import com.fazecast.jSerialComm.*;
 
+//Tcaciuc Rares-Stefan, 12.03.2026
+
 public class Transmitter {
     public static void main(String[] args){
         SerialPort comPort = SerialPort.getCommPort("ttyUSB1");
