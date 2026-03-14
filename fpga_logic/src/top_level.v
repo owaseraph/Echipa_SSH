@@ -23,7 +23,7 @@ module top_level(
 
     uart_rx my_rx(
         .clk(clk),
-        .rx_pin(RsRx),
+        .rx_pin(dec_RsRx),
         .data_out(received_byte),
         .data_ready(byte_ready)
     );
@@ -70,7 +70,7 @@ module top_level(
         .clk(clk),
         .data_in(tx_byte_buffer),
         .send_signal(trigger_tx),
-        .tx_pin(RsTx),
+        .tx_pin(enc_RsTx),
         .is_idle(tx_is_idle)
     );
 

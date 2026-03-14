@@ -38,8 +38,8 @@ end
 // =============================
 top_level encryptor(
     .clk(clk),
-    .RsRx(RsRx),
-    .RsTx(enc_tx),
+    .dec_RsRx(RsRx),
+    .enc_RsTx(enc_tx),
 
     .debug_received_byte(enc_rx_byte),
     .debug_encrypted_byte(enc_byte),
@@ -108,6 +108,16 @@ initial begin
     send_uart_byte("L");
     send_uart_byte("u");
     send_uart_byte("t");
+  
+send_uart_byte("A");
+send_uart_byte("L");
+send_uart_byte("U");
+send_uart_byte("T");
+send_uart_byte(" ");
+send_uart_byte("F");
+send_uart_byte("P");
+send_uart_byte("G");
+send_uart_byte("A");
 
     #300000000;
 
