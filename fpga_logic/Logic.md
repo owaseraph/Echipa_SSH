@@ -1,5 +1,10 @@
 # RX Module
 
+
+##THIS .MD NEEDS UPDATING
+
+
+
 ## 1. Timing Logic
 The Basys 3 runs at **100 MHz**. To communicate at a **115,200 baud rate**, we calculate the number of clock cycles required per serial bit:
 $Cycles = \frac{100,000,000}{115,200} \approx 868$
