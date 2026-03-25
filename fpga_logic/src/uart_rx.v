@@ -1,89 +1,93 @@
-`timescale 1ns / 1ps
-//Tcaciuc Rares-Stefan ,12.03.2026
-//wire is idle, it sits at HIGH
-//to send a byte, the UART does:
-//1. start bit - pulls the wire LOW for ONE tick
-//2. data bits - sends 8 bits of my character ONE by ONE
-//3. stop bit - pulls the wire HIGH for ONE tick
+module uart_rx #(
+    parameter CLKS_PER_BIT = 868 //115200 baud
+)(
+    input        i_clk,
+    input        i_rst,
+    input        i_rx_serial,
+    output reg   o_rx_dv,
+    output reg [7:0] o_rx_byte
+);
 
-//clk of FPGA 100_000_000 times per second
-//baud rate of java - 115200
-//we divide them and get 868 clock cycles for one UART bit
+    localparam IDLE      = 3'b000;
+    localparam START_BIT = 3'b001;
+    localparam DATA_BITS = 3'b010;
+    localparam STOP_BIT  = 3'b011;
+    localparam CLEANUP   = 3'b100;
 
-module uart_rx(
-    input clk,
-    input rx_pin,
-    output reg[7:0] data_out,
-    output reg data_ready
-    );
-    
-    parameter CLK_PER_BIT = 868;
-    
-    parameter IDLE = 2'b00;
-    parameter START = 2'b01;
-    parameter DATA = 2'b10;
-    parameter STOP = 2'b11;
-    
-    reg[1:0] state = IDLE;
-    reg[9:0] clock_count = 0;
-    reg [2:0] bit_index = 0;
-    
-    
-    always @(posedge clk) begin
-        case (state)
-            IDLE: begin 
-                data_ready <= 1'b0;
-                clock_count <= 0;
-                bit_index <= 0;
-                
-                //if we detect a low signal we start reading the bit
-                if(rx_pin == 1'b0) begin
-                    state <= START;
+    reg [2:0]  r_state = IDLE;
+    reg [15:0] r_clk_count = 0;
+    reg [2:0]  r_bit_index = 0;
+    reg [7:0]  r_rx_byte = 0;
+
+    // double register (good practice)
+    reg r_rx1 = 1'b1;
+    reg r_rx2 = 1'b1;
+
+    always @(posedge i_clk) begin
+        r_rx1 <= i_rx_serial;
+        r_rx2 <= r_rx1;
+    end
+
+    always @(posedge i_clk or posedge i_rst) begin
+        if (i_rst) begin
+            r_state <= IDLE;
+            o_rx_dv <= 0;
+        end else begin
+            case (r_state)
+
+                IDLE: begin
+                    o_rx_dv <= 0;
+                    r_clk_count <= 0;
+                    r_bit_index <= 0;
+
+                    if (r_rx2 == 0)
+                        r_state <= START_BIT;
                 end
-            end
-            
-            START: begin
-                //wait half a bit to be able to sample in the middle
-                if(clock_count == (CLK_PER_BIT/2)) begin
-                    if(rx_pin == 1'b0) begin //ensure we are still reading
-                        clock_count<=0;
-                        state <= DATA;
-                    end else begin
-                        state <= IDLE;
-                    end
-                end else begin
-                    clock_count <= clock_count+1;
+
+                START_BIT: begin
+                    if (r_clk_count == (CLKS_PER_BIT-1)/2) begin
+                        if (r_rx2 == 0) begin
+                            r_clk_count <= 0;
+                            r_state <= DATA_BITS;
+                        end else
+                            r_state <= IDLE;
+                    end else
+                        r_clk_count <= r_clk_count + 1;
                 end
-            end
-            
-            DATA: begin
-                //waiting full duration
-                if(clock_count < CLK_PER_BIT - 1) begin
-                    clock_count <= clock_count + 1;
-                end else begin
-                    clock_count <= 0;
-                    data_out[bit_index] <= rx_pin;
-                    
-                    if(bit_index<7) begin
-                        bit_index <= bit_index + 1;
-                    end else begin
-                        bit_index <= 0;
-                        state <= STOP;
+
+                DATA_BITS: begin
+                    if (r_clk_count < CLKS_PER_BIT-1)
+                        r_clk_count <= r_clk_count + 1;
+                    else begin
+                        r_clk_count <= 0;
+                        r_rx_byte[r_bit_index] <= r_rx2;
+
+                        if (r_bit_index < 7)
+                            r_bit_index <= r_bit_index + 1;
+                        else begin
+                            r_bit_index <= 0;
+                            r_state <= STOP_BIT;
+                        end
                     end
                 end
-             end
-             
-             STOP: begin
-                //wait 1 full bit before the stop
-                if(clock_count < CLK_PER_BIT-1) begin
-                    clock_count <= clock_count + 1;
-                end else begin
-                    //tell the top level we have a fresh letter
-                    data_ready <= 1'b1;
-                    clock_count <= 0;
-                    state <= IDLE;
+
+                STOP_BIT: begin
+                    if (r_clk_count < CLKS_PER_BIT-1)
+                        r_clk_count <= r_clk_count + 1;
+                    else begin
+                        o_rx_dv   <= 1'b1;
+                        o_rx_byte <= r_rx_byte;
+                        r_clk_count <= 0;
+                        r_state <= CLEANUP;
+                    end
                 end
-             end
-        endcase
-     end              
+
+                CLEANUP: begin
+                    r_state <= IDLE;
+                    o_rx_dv <= 0;
+                end
+
+            endcase
+        end
+    end
 endmodule

@@ -1,84 +1,101 @@
-`timescale 1ns / 1ps
-//Tcaciuc Rares-Stefan, 11.03.2026
-//we wait for the signal, load the 8 bits, shift them to the tx_pin one by one, waiting 868 clock cycles between each shift
+module uart_tx #(
+    parameter CLKS_PER_BIT = 868  //115200 baud
+)(
+    input        i_clk,
+    input        i_rst,
+    input        i_tx_dv,        // start signal
+    input  [7:0] i_tx_byte,
+    output reg   o_tx_active,
+    output reg   o_tx_serial,
+    output reg   o_tx_done
+);
 
+    localparam IDLE      = 3'b000;
+    localparam START_BIT = 3'b001;
+    localparam DATA_BITS = 3'b010;
+    localparam STOP_BIT  = 3'b011;
+    localparam CLEANUP   = 3'b100;
 
-module uart_tx(
-    input clk, //FPGA clock
-    input [7:0] data_in, //8bit letter to be modified
-    input send_signal, //trigger impulse to start sending
-    output reg tx_pin, //the physical wire going to the USB
-    output is_idle //tells the top level it is ready for transmitting
-    );
-    
-    parameter CLK_PER_BIT = 868;
-     
-    parameter IDLE = 2'b00;
-    parameter START = 2'b01;
-    parameter DATA = 2'b10;
-    parameter STOP = 2'b11;
-    
-    reg[1:0] state = IDLE;
-    reg[9:0] clock_count = 0; //counts up to 868
-    reg [2:0] bit_index = 0; //counts from 0 to 7 for the 8 bits
-    reg [7:0] saved_data = 0; //holds our letter so it doesnt change while serial communicates
-    
-    initial tx_pin = 1'b1;
-    assign is_idle = (state==IDLE);
-    
-    always @(posedge clk) begin
-        case(state)
-            IDLE: begin
-                tx_pin <= 1'b1; // keep wire HIGH
-                clock_count <= 0;
-                bit_index <= 0;
+    reg [2:0]  r_state = IDLE;
+    reg [15:0] r_clk_count = 0;
+    reg [2:0]  r_bit_index = 0;
+    reg [7:0]  r_tx_data = 0;
+
+    always @(posedge i_clk or posedge i_rst) begin
+        if (i_rst) begin
+            r_state      <= IDLE;
+            o_tx_serial  <= 1'b1;
+            o_tx_done    <= 1'b0;
+            o_tx_active  <= 1'b0;
+        end else begin
+            case (r_state)
+
+                IDLE: begin
+                    o_tx_serial <= 1'b1;
+                    o_tx_done   <= 1'b0;
+                    r_clk_count <= 0;
+                    r_bit_index <= 0;
                 
-                if(send_signal == 1'b1) begin
-                    saved_data <= data_in;
-                    state <= START;
-                end
-            end
-            
-            START: begin
-                tx_pin <= 1'b0; //pull wire to LOW to signal a new byte is coming
+                    if (i_tx_dv) begin
+                        o_tx_active <= 1'b1;
+                        r_tx_data   <= i_tx_byte;
                 
-                //wait for 1 bit duration
-                if(clock_count < CLK_PER_BIT - 1) begin
-                    clock_count <= clock_count + 1;
-                end else begin
-                    clock_count <= 0;
-                    state <= DATA;
-                end
-            end
-            
-            DATA: begin
-                tx_pin <= saved_data[bit_index]; //put the current bit on the wire
+                        // 🔴 DEBUG: byte accepted
+                        $display("UART_TX START: sending byte = %02h at time %t", i_tx_byte, $time);
                 
-                if(clock_count < CLK_PER_BIT - 1) begin
-                    clock_count <= clock_count + 1;
-                end else begin
-                    clock_count <= 0;
-                    //check for all 8 bits
-                    
-                    if(bit_index < 7) begin
-                        bit_index <= bit_index + 1;
-                    end else begin
-                        bit_index <= 0;
-                        state <= STOP; //move to stop bit
+                        r_state     <= START_BIT;
+                    end
+                end 
+    
+                START_BIT: begin
+                    o_tx_serial <= 1'b0;
+                    if (r_clk_count < CLKS_PER_BIT-1)
+                        r_clk_count <= r_clk_count + 1;
+                    else begin
+                        r_clk_count <= 0;
+                        r_state <= DATA_BITS;
                     end
                 end
-            end
-            
-            STOP: begin
-                tx_pin <= 1'b1; //pull wire HIGH to signal the end
-                
-                if(clock_count < CLK_PER_BIT - 1) begin
-                    clock_count <= clock_count + 1;
-                end else begin
-                    clock_count <= 0;
-                    state <= IDLE; // all is done, wait for new byte
+
+                DATA_BITS: begin
+                    o_tx_serial <= r_tx_data[r_bit_index];
+
+                    if (r_clk_count < CLKS_PER_BIT-1)
+                        r_clk_count <= r_clk_count + 1;
+                    else begin
+                        r_clk_count <= 0;
+
+                        if (r_bit_index < 7)
+                            r_bit_index <= r_bit_index + 1;
+                        else begin
+                            r_bit_index <= 0;
+                            r_state <= STOP_BIT;
+                        end
+                    end
                 end
-            end
-        endcase
-     end
+
+                STOP_BIT: begin
+                    o_tx_serial <= 1'b1;
+                    if (r_clk_count < CLKS_PER_BIT-1)
+                        r_clk_count <= r_clk_count + 1;
+                    else begin
+                        o_tx_done  <= 1'b1;
+                
+                        // 🔴 DEBUG: byte finished
+                        $display("UART_TX DONE: byte sent = %02h at time %t", r_tx_data, $time);
+                
+                        r_clk_count <= 0;
+                        r_state <= CLEANUP;
+                        o_tx_active <= 1'b0;
+                    end
+                end
+
+                CLEANUP: begin
+                    o_tx_done <= 1'b1;
+                    r_state   <= IDLE;
+                end
+
+            endcase
+        end
+    end
 endmodule
