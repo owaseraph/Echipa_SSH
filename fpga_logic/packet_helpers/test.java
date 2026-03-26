@@ -6,7 +6,7 @@ import java.util.Scanner;
 public class test {
 
     public static void main(String[] args) throws Exception {
-        String portName = "/dev/ttyUSB1";
+        String portName = "/dev/ttyUSB2";
         int baudRate = 115200;
 
         SerialPort port = SerialPort.getCommPort(portName);
