@@ -21,6 +21,10 @@ public class MainApp extends Application {
         primaryStage.setScene(scene);
         primaryStage.show();
 
+        MainController controller = loader.getController();
+        primaryStage.setOnCloseRequest(event -> {
+            controller.cleanup();
+        });
     }
 
     public static void main(String[] args) {

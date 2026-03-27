@@ -1,3 +1,10 @@
+/*
+Main controller for the App
+-handles the connection between backend and main, backend can't directly modify ui elements
+-implements functions and handles connection states and edge cases
+
+*/
+
 package com.transmitter;
 
 import java.net.URL;
@@ -17,7 +24,9 @@ public class MainController implements Initializable{
 
     private String lastPort = ""; // last opened port name
 
-    @FXML private TextArea messageArea; // central message area
+    @FXML private TextArea serialInputArea; // input serial area
+    @FXML private TextArea serialOutputArea; // output (received) area
+    @FXML private TextArea logsArea; // logs area
     @FXML private TextField messageInput; // message input 
     @FXML private ComboBox portComboBox; // port combo box
 
@@ -38,15 +47,17 @@ public class MainController implements Initializable{
     // try connecting
     @FXML
     private void onConnect(){
+        onDisconnect(); // disconnect from last port
+
         String portName = (String)portComboBox.getValue();
         if (portName == null){ // check for ports selected
-            messageArea.appendText("No port selected\n");
+            logsArea.appendText("No port selected\n");
             return;
         }
         int baudRate = backend.getBaudRate();
         // try to connect
         if(backend.connect(portName, baudRate) && backend.isConnected()){
-            messageArea.appendText("Connected to " + portName +"\n");
+            logsArea.appendText("Connected to " + portName +"\n");
             lastPort = portName;
             
             // start listening to the port
@@ -55,20 +66,21 @@ public class MainController implements Initializable{
             // used so backend doesn't communicate directly with ui elements
             backend.startListening(message ->{ 
                 Platform.runLater(() -> {
-                    messageArea.appendText("Received " + message + " from FPGA\n");
+                    serialOutputArea.appendText(message + "\n");
                 });
             });
         }
         else 
-            messageArea.appendText(" Failed to connected to " + portName + "\n");        
+            logsArea.appendText("Failed to connected to " + portName + "\n");        
     }
     
     // disconnect
     @FXML
     private void onDisconnect(){
-        if(backend.disconnect()){
-            messageArea.appendText("Disconnected from " + lastPort + "\n");
+        if(backend.isConnected()){
             backend.stopListening();
+            backend.disconnect();
+            logsArea.appendText("Disconnected from " + lastPort + "\n");
         }
     }
 
@@ -78,13 +90,17 @@ public class MainController implements Initializable{
         String input = messageInput.getText().trim();
         if(input.isEmpty()) return;
         // send bytes to FPGA
-        if(backend.sendText(input)){
-            // write on message Area
-            messageArea.appendText("Sent to FPGA: " + input + "\n");
+        if(!backend.sendText(input)){ // not connected (port Disconnected or failed)
+            logsArea.appendText("Not connected to any port\n");
         }
-        else // port is not connected
-            messageArea.appendText("Not connected to any port\n");
+        else // connected
+            serialInputArea.appendText(input + "\n");
+        
         messageInput.clear();
     }
 
+    // cleanup for soft close
+    public void cleanup(){
+        onDisconnect();
+    }
 } 
