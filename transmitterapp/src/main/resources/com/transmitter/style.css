@@ -1,0 +1,150 @@
+/* root */
+.root {
+    -fx-background-color: #1e1e1e;
+    -fx-font-family: "Consolas";
+    -fx-font-size: 13px;
+}
+
+/* text areas */
+.text-area {
+    -fx-text-fill: #d4d4d4;
+    -fx-border-color: #3c3c3c;
+    -fx-border-width: 1;
+    -fx-border-radius: 3;
+    -fx-background-radius: 3;
+}
+
+.text-area,
+.text-area .content,
+.text-area .scroll-pane,
+.text-area .scroll-pane .viewport,
+.text-area .scroll-pane .content {
+    -fx-background-color: #252526;
+    -fx-control-inner-background: #252526;
+}
+
+.text-area .content {
+    -fx-text-fill: #d4d4d4;
+}
+
+/* split pane */
+.split-pane {
+    -fx-background-color: #1e1e1e;
+    -fx-padding: 0;
+    -fx-box-border: transparent;
+}
+
+.split-pane-divider {
+    -fx-background-color: #3c3c3c;
+    -fx-padding: 1;
+}
+
+/* vbox */
+.vbox {
+    -fx-background-color: #252526;
+    -fx-padding: 0;
+}
+
+/* labels */
+.label {
+    -fx-text-fill: #6e6e6e;
+    -fx-font-size: 14px;
+}
+
+/* buttons */
+.button {
+    -fx-background-color: #2d2d2d;
+    -fx-text-fill: #d4d4d4;
+    -fx-border-color: #3c3c3c;
+    -fx-border-width: 1;
+    -fx-border-radius: 3;
+    -fx-background-radius: 3;
+    -fx-cursor: hand;
+    -fx-padding: 5 12 5 12;
+}
+
+.button:hover {
+    -fx-background-color: #3c3c3c;
+    -fx-border-color: #555555;
+}
+
+.button:pressed {
+    -fx-background-color: #252526;
+}
+
+/* combo box */
+.combo-box {
+    -fx-background-color: #2d2d2d;
+    -fx-border-color: #3c3c3c;
+    -fx-border-width: 1;
+    -fx-border-radius: 3;
+    -fx-background-radius: 3;
+}
+
+.combo-box .list-cell {
+    -fx-text-fill: #d4d4d4;
+    -fx-background-color: #2d2d2d;
+}
+
+.combo-box-popup .list-view {
+    -fx-background-color: #2d2d2d;
+    -fx-border-color: #3c3c3c;
+}
+
+.combo-box-popup .list-cell:hover {
+    -fx-background-color: #3c3c3c;
+}
+
+.combo-box .arrow-button {
+    -fx-background-color: #2d2d2d;
+}
+
+.combo-box .arrow {
+    -fx-background-color: #d4d4d4;
+}
+
+/* text field */
+.text-field {
+    -fx-background-color: #252526;
+    -fx-text-fill: #d4d4d4;
+    -fx-border-color: #3c3c3c;
+    -fx-border-width: 1;
+    -fx-border-radius: 3;
+    -fx-background-radius: 3;
+    -fx-prompt-text-fill: #6e6e6e;
+}
+
+.text-field:focused {
+    -fx-border-color: #0078d4;
+}
+
+/* hbox */
+.hbox {
+    -fx-background-color: #252526;
+    -fx-padding: 6;
+}
+
+/* scroll bar */
+.scroll-bar {
+    -fx-background-color: #252526;
+}
+
+.scroll-bar .thumb {
+    -fx-background-color: #3c3c3c;
+    -fx-background-radius: 3;
+}
+
+.scroll-bar .thumb:hover {
+    -fx-background-color: #555555;
+}
+
+.scroll-bar .increment-button,
+.scroll-bar .decrement-button {
+    -fx-background-color: #252526;
+    -fx-padding: 2;
+}
+
+.scroll-bar .increment-arrow,
+.scroll-bar .decrement-arrow {
+    -fx-background-color: #6e6e6e;
+}
