@@ -38,6 +38,9 @@ public class MainController implements Initializable{
     @Override
     public void initialize(URL url, ResourceBundle rb){
         portComboBox.getItems().addAll(backend.getAvailablePorts());
+        if (!backend.getLastError().isBlank()) {
+            logsArea.appendText("[WARN] " + backend.getLastError() + "\n");
+        }
     }
 
     
@@ -46,6 +49,9 @@ public class MainController implements Initializable{
     private void onRefresh(){
         portComboBox.getItems().clear();
         portComboBox.getItems().addAll(backend.getAvailablePorts());
+        if (!backend.getLastError().isBlank()) {
+            logsArea.appendText("[WARN] " + backend.getLastError() + "\n");
+        }
     }
     
     // try connecting
@@ -83,8 +89,10 @@ public class MainController implements Initializable{
                 });
             });
         }
-        else 
-            logsArea.appendText("Failed to connected to " + portName + "\n");        
+        else {
+            String reason = backend.getLastError().isBlank() ? "" : " (" + backend.getLastError() + ")";
+            logsArea.appendText("Failed to connected to " + portName + reason + "\n");
+        }
     }
     
     // disconnect

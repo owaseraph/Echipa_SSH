@@ -47,3 +47,11 @@ build/
 
 # --- Documentation ---
 ~$*
+
+# --- TransmitterApp ---
+SerialMonitor/
+target/
+*.jar
+*.exe
+*.class
+*.vscode/

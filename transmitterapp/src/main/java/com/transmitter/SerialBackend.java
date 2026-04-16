@@ -1,6 +1,7 @@
 package com.transmitter;
 
 import java.io.ByteArrayOutputStream;
+import java.io.File;
 import java.util.ArrayList;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
@@ -25,28 +26,75 @@ public class SerialBackend{
     
     // Callback for block logging
     private Consumer<String> blockLogCallback;
+    private volatile String lastError = "";
+
+    public static void clearNativeCache() {
+        deleteRecursively(new File(System.getProperty("java.io.tmpdir"), "jSerialComm"));
+        deleteRecursively(new File(System.getProperty("user.home"), ".jSerialComm"));
+    }
+
+    private static void deleteRecursively(File file) {
+        if (file == null || !file.exists()) {
+            return;
+        }
+
+        File[] children = file.listFiles();
+        if (children != null) {
+            for (File child : children) {
+                deleteRecursively(child);
+            }
+        }
+
+        if (!file.delete() && file.exists()) {
+            file.deleteOnExit();
+        }
+    }
+
+    public String getLastError() {
+        return lastError;
+    }
     
     public ArrayList<String> getAvailablePorts(){
-        // list with com ports
-        ArrayList <String> comPorts = new ArrayList<>(); 
+        return getAvailablePorts(false);
+    }
 
-        for(SerialPort port: SerialPort.getCommPorts()){
-            comPorts.add(port.getSystemPortName());
+    private ArrayList<String> getAvailablePorts(boolean retried) {
+        ArrayList<String> comPorts = new ArrayList<>();
+
+        try {
+            for (SerialPort serialPort : SerialPort.getCommPorts()) {
+                comPorts.add(serialPort.getSystemPortName());
+            }
+            lastError = "";
+        } catch (Throwable t) {
+            if (!retried) {
+                clearNativeCache();
+                return getAvailablePorts(true);
+            }
+            lastError = formatSerialError("Serial library unavailable", t);
         }
         return comPorts;
     }
-    public boolean connect(String portName, int baudRate){
-        // get port by name
-        port = SerialPort.getCommPort(portName); 
 
-        // config
-        port.setBaudRate(baudRate);
-        port.setNumDataBits(numDataBits);
-        port.setNumStopBits(SerialPort.ONE_STOP_BIT);
-        port.setParity(SerialPort.NO_PARITY);
-        
-        // open port
-        return port.openPort(); 
+    public boolean connect(String portName, int baudRate){
+        try {
+            // get port by name
+            port = SerialPort.getCommPort(portName); 
+
+            // config
+            port.setBaudRate(baudRate);
+            port.setNumDataBits(numDataBits);
+            port.setNumStopBits(SerialPort.ONE_STOP_BIT);
+            port.setParity(SerialPort.NO_PARITY);
+            
+            // open port
+            boolean opened = port.openPort();
+            lastError = opened ? "" : "Failed to open port " + portName;
+            return opened; 
+        } catch (Throwable t) {
+            lastError = formatSerialError("Could not open serial port", t);
+            return false;
+        }
 
     }
 
@@ -179,10 +227,26 @@ public class SerialBackend{
     }
 
     public void stopListening(){
-        port.removeDataListener();
+        if (port != null) {
+            port.removeDataListener();
+        }
     }
     
     
+    private String formatSerialError(String prefix, Throwable t) {
+        String details = t.getMessage();
+        if (details == null || details.isBlank()) {
+            details = t.getClass().getSimpleName();
+        }
+
+        String lower = details.toLowerCase();
+        if (lower.contains("access is denied")) {
+            return prefix + ": serial driver cache is locked by another app instance. Close other transmitter/SerialMonitor windows and refresh.";
+        }
+
+        return prefix + ": " + details;
+    }
+
     // Format a block for logging (printable characters as-is, non-printable as hex)
     private String formatBlockLog(String prefix, byte[] block) {
         StringBuilder sb = new StringBuilder(prefix);
