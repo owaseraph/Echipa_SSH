@@ -28,6 +28,7 @@ public class MainApp extends Application {
     }
 
     public static void main(String[] args) {
+        SerialBackend.clearNativeCache(); // clear cache for jSerialComm
         launch(args);
     }
 }
